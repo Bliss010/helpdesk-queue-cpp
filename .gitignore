@@ -1,0 +1,6 @@
+helpdesk
+helpdesk.exe
+run_tests
+run_tests.exe
+*.o
+*.out
