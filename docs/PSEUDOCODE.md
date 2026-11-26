@@ -1,4 +1,4 @@
-# Pseudocode – Help Desk Ticket System (Features 1 to 4)
+# Pseudocode – Help Desk Ticket System (Features 1 to 7)
 
 ---
 
@@ -371,38 +371,6 @@ BEGIN search(kind, value)
     ELSE
         PRINT "Usage: search id <number> OR search name <name>"
     END IF
-END
-```
-
----
-
-## Main program
-
-```
-BEGIN main()
-    CREATE queue with capacity 100
-    CREATE actions stack with capacity 1000
-    CREATE empty servedList
-    SET nextId = 1
-
-    PRINT list of commands
-
-    REPEAT
-        INPUT command
-        IF command = "add" THEN
-            CALL add()
-        ELSE IF command = "serve" THEN
-            CALL serve()
-        ELSE IF command = "print" THEN
-            CALL queue.print()
-        ELSE IF command = "search" THEN
-            CALL search(kind, value)
-        ELSE IF command = "quit" THEN
-            EXIT loop
-        ELSE
-            PRINT "Unknown command"
-        END IF
-    UNTIL user types quit
 END
 ```
 
