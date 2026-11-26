@@ -119,3 +119,27 @@ int TicketQueue::findByName(const std::string& name, int positions[], int maxRes
     }
     return found;
 }
+// ===================== Feature 5 and 6 =====================
+
+// takes a ticket out of the line; everyone behind it moves up one place
+bool TicketQueue::removeAt(int position, Ticket& removed) {
+    if (position < 0 || position >= count) return false;
+    removed = data[indexOf(position)];
+    for (int i = position; i < count - 1; i++)
+        data[indexOf(i)] = data[indexOf(i + 1)];
+    count--;
+    rearIndex = (frontIndex + count - 1 + capacity) % capacity;
+    return true;
+}
+
+// puts a ticket into the line at this position; everyone from there back moves down one place
+bool TicketQueue::insertAt(int position, const Ticket& t) {
+    if (isFull() || position < 0 || position > count) return false;
+    for (int i = count; i > position; i--)
+        data[indexOf(i)] = data[indexOf(i - 1)];
+    data[indexOf(position)] = t;
+    count++;
+    rearIndex = (frontIndex + count - 1) % capacity;
+    return true;
+}
+

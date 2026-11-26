@@ -4,3 +4,4 @@ run_tests
 run_tests.exe
 *.o
 *.out
+run_cancel_undo_tests

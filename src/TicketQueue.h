@@ -36,5 +36,9 @@ public:
     int waitBefore(int position) const;
     int findById(int id) const;
     int findByName(const std::string& name, int positions[], int maxResults) const;
+
+    //Feature 5 and 6
+    bool removeAt(int position, Ticket& removed);   
+    bool insertAt(int position, const Ticket& t);   
 };
 #endif

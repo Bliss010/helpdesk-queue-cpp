@@ -405,3 +405,220 @@ BEGIN main()
     UNTIL user types quit
 END
 ```
+
+## Feature 5: cancel
+ 
+### 5.1 TicketQueue – removeAt
+```
+BEGIN removeAt(position, removed)
+    IF position < 0 OR position >= count THEN
+        RETURN false
+    END IF
+    SET removed = data[indexOf(position)]
+    // everyone behind the ticket moves up one place
+    FOR i = position TO count - 2
+        SET data[indexOf(i)] = data[indexOf(i + 1)]
+    END FOR
+    SET count = count - 1
+    SET rear = (front + count - 1) MOD capacity
+    RETURN true
+END
+```
+ 
+### 5.2 cancel
+```
+BEGIN cancel(id)
+    SET pos = queue.findById(id)
+    IF pos = -1 THEN
+        PRINT "Ticket is not in the line"
+        STOP
+    END IF
+    CALL queue.removeAt(pos, ticket)
+ 
+    // save the old position so undo can put the ticket back
+    CREATE action with type = CANCEL, ticket, position = pos
+    CALL actions.push(action)
+ 
+    PRINT "Cancelled ticket", ticket id
+END
+```
+ 
+---
+ 
+## Feature 6: undo
+ 
+### 6.1 TicketQueue – insertAt
+```
+BEGIN insertAt(position, ticket)
+    IF isFull() OR position < 0 OR position > count THEN
+        RETURN false
+    END IF
+    // everyone from this position to the rear moves down one place
+    FOR i = count DOWN TO position + 1
+        SET data[indexOf(i)] = data[indexOf(i - 1)]
+    END FOR
+    SET data[indexOf(position)] = ticket
+    SET count = count + 1
+    SET rear = (front + count - 1) MOD capacity
+    RETURN true
+END
+```
+ 
+### 6.2 undo
+```
+BEGIN undo()
+    IF actions.pop(action) is false THEN
+        PRINT "Nothing to undo"
+        STOP
+    END IF
+ 
+    IF action.type = ADD THEN
+        // the added ticket is still the last one in line
+        CALL queue.removeAt(queue.size() - 1, ticket)
+        SET nextId = nextId - 1
+    ELSE IF action.type = SERVE THEN
+        CALL queue.insertAt(0, action.ticket)          // back to the front
+        REMOVE the last ticket from servedList
+    ELSE IF action.type = CANCEL THEN
+        CALL queue.insertAt(action.position, action.ticket)   // back to its old place
+    END IF
+ 
+    PRINT what was undone
+END
+```
+ 
+---
+ 
+## Feature 7: load and save
+ 
+### 7.1 readTicketLine
+```
+BEGIN readTicketLine(line)
+    SPLIT line at commas into id, studentName, category, minutes, arrivalTime
+    IF id or minutes is not a whole number > 0 THEN
+        RETURN false                       // broken line
+    END IF
+    CREATE ticket with (id, studentName, category, minutes)
+    SET arrival = 0
+    IF arrivalTime looks like HH:MM THEN
+        SET arrival = HH * 60 + MM         // "09:30" becomes 570
+    END IF
+    RETURN true
+END
+```
+ 
+### 7.2 load
+```
+BEGIN load(filename)
+    OPEN filename
+    IF the file cannot be opened THEN
+        PRINT "Could not open file"
+        STOP
+    END IF
+ 
+    // a new day: empty the line, the served list and the undo history
+    WHILE queue is not empty: DEQUEUE
+    WHILE actions is not empty: POP
+    CLEAR servedList
+ 
+    SKIP the header line
+    SET nextId = 1
+    FOR each line in the file
+        IF readTicketLine(line) is false THEN
+            SKIP this line
+        END IF
+        IF queue.enqueue(ticket) is false THEN
+            STOP reading                   // the line is full
+        END IF
+        IF ticket id >= nextId THEN
+            SET nextId = ticket id + 1
+        END IF
+    END FOR
+    PRINT how many tickets were loaded
+END
+```
+ 
+### 7.3 save
+```
+BEGIN save(filename)
+    OPEN filename for writing
+    IF it cannot be opened THEN
+        PRINT "Could not write file"
+        STOP
+    END IF
+    WRITE "id,studentName,category,minutes"
+    FOR i = 0 TO queue.size() - 1
+        SET ticket = queue.getAt(i)
+        WRITE ticket id, name, category, minutes separated by commas
+    END FOR
+END
+```
+ 
+---
+ 
+## M4: simulation
+ 
+```
+BEGIN simulate(filename, agents)
+    READ every ticket of the file into dayQueue, and its arrival time into arrivals[]
+    SET freeAt[0] = 0, freeAt[1] = 0        // minute when each agent is next free
+    SET totalWait = 0, longestWait = 0
+ 
+    FOR i = 0 TO count - 1
+        CALL dayQueue.dequeue(ticket)
+        SET agent = 0
+        IF agents = 2 AND freeAt[1] < freeAt[0] THEN
+            SET agent = 1                    // the agent who is free first
+        END IF
+        SET start = the later of arrivals[i] and freeAt[agent]
+        SET wait = start - arrivals[i]
+        SET freeAt[agent] = start + ticket.minutesNeeded
+        SET totalWait = totalWait + wait
+        IF wait > longestWait THEN SET longestWait = wait
+    END FOR
+ 
+    PRINT average wait = totalWait / number of tickets, and longestWait
+END
+```
+ 
+---
+ 
+## Main program
+ 
+```
+BEGIN main()
+    CREATE queue with capacity 100
+    CREATE actions stack with capacity 1000
+    CREATE empty servedList
+    SET nextId = 1
+ 
+    PRINT list of commands
+ 
+    REPEAT
+        INPUT command
+        IF command = "add" THEN
+            CALL add()
+        ELSE IF command = "serve" THEN
+            CALL serve()
+        ELSE IF command = "print" THEN
+            CALL queue.print()
+        ELSE IF command = "search" THEN
+            CALL search(kind, value)
+        ELSE IF command = "cancel" THEN
+            CALL cancel(id)
+        ELSE IF command = "undo" THEN
+            CALL undo()
+        ELSE IF command = "load" THEN
+            CALL load(filename)
+        ELSE IF command = "save" THEN
+            CALL save(filename)
+        ELSE IF command = "simulate" THEN
+            CALL simulate(filename, 1) and simulate(filename, 2)
+        ELSE IF command = "quit" THEN
+            EXIT loop
+        ELSE
+            PRINT "Unknown command"
+        END IF
+    UNTIL user types quit
+END
+```
